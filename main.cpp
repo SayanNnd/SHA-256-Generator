@@ -47,24 +47,38 @@ uint32_t majority(uint32_t a, uint32_t b, uint32_t c) {
 }
 
 //Convert String into a 512 bit block
-void createBlock(string &message, uint8_t block[64]) {
-    size_t L = message.length();
-    size_t Z = 55-L;
+void createBlock(string &message, uint8_t block[64], int &l,int &i, int &blockNo) {
     uint8_t *pointer = block;
-    for (char c : message) {
-        *pointer = c;
+    uint8_t *endPointer = block+64;
+    while(l<message.size() && pointer!=endPointer) {
+        *pointer = message[l];
         pointer++;
+        l++;
+        if (l==message.size()) {
+            *pointer = 128;
+            pointer++;
+        }
     }
-    *pointer = 128;
-    pointer++;
-    for (int i{0}; i<Z; i++) {
-        *pointer = 0;
-        pointer++;
-    }
-    uint64_t length = L*8;
-    for (int slide{56}; slide>=0; slide-=8) {
-        *pointer = (length>>slide);
-        pointer++;
+    if (l==message.size()) {
+        if (i==blockNo) {
+            size_t L = message.length();
+            size_t Z = (endPointer - pointer)-8;
+            for (int i{0}; i<Z; i++) {
+                *pointer = 0;
+                pointer++;
+            }
+            uint64_t length = L*8;
+            for (int slide{56}; slide>=0; slide-=8) {
+                *pointer = (length>>slide);
+                pointer++;
+            }
+        }
+        else {
+            while (pointer!=endPointer) {
+                *pointer = 0;
+                pointer++;
+            }
+        }
     }
 }
 
@@ -81,59 +95,62 @@ void createWord(uint8_t block[64], uint32_t words[64]) {
 //-------------------------------------------------------------
 
 int main() {
-    string message;
-    do {
-        cout << "Enter a sentence :- ";
-        getline(cin,message);
-        if (message.length() > 55) {
-            cout << "Please enter a smaller string...\n";
-        }
-    } while (message.length() > 55);
-
-    //Create blocks
-    uint8_t block[64];
-    createBlock(message,block);
-    uint32_t words[64];
-    createWord(block,words);
-    
-
-    //Bit manipulation
-    uint32_t a = H_INIT[0];
-    uint32_t b = H_INIT[1];
-    uint32_t c = H_INIT[2];
-    uint32_t d = H_INIT[3];
-    uint32_t e = H_INIT[4];
-    uint32_t f = H_INIT[5];
-    uint32_t g = H_INIT[6];
-    uint32_t h = H_INIT[7];
-    for (int i{0}; i<64; i++) {
-        uint32_t T1 = h+K[i]+words[i]+bigsigma1(e)+choice(e,f,g);
-        uint32_t T2 = bigsigma0(a)+majority(a,b,c);
-        h=g;
-        g=f;
-        f=e;
-        e=d+T1;
-        d=c;
-        c=b;
-        b=a;
-        a=T1+T2;
-    }
-
-    //Final Hex Collection
+    //Hex Initialization
     uint32_t H[8];
     for (int i = 0; i < 8; i++) H[i] = H_INIT[i];
-    H[0]+=a;
-    H[1]+=b;
-    H[2]+=c;
-    H[3]+=d;
-    H[4]+=e;
-    H[5]+=f;
-    H[6]+=g;
-    H[7]+=h;
+
+    //Input String
+    string message;
+    cout << "Enter a sentence :- ";
+    getline(cin,message);
+    int blockNo = (message.size()+8)/64;
+
+    //Hex Algorithm
+    int l=0;
+    for (int i{0}; i<=blockNo; i++) {
+        //Re-initialiazing variables with older hex
+        uint32_t a = H[0];
+        uint32_t b = H[1];
+        uint32_t c = H[2];
+        uint32_t d = H[3];
+        uint32_t e = H[4];
+        uint32_t f = H[5];
+        uint32_t g = H[6];
+        uint32_t h = H[7];
+
+        //Creates blocks from message to work upon 
+        uint8_t block[64];
+        createBlock(message,block,l,i,blockNo);
+        uint32_t words[64];
+        createWord(block,words);
+
+        //Bit manipulation
+        for (int k{0}; k<64; k++) {
+            uint32_t T1 = h+K[k]+words[k]+bigsigma1(e)+choice(e,f,g);
+            uint32_t T2 = bigsigma0(a)+majority(a,b,c);
+            h=g;
+            g=f;
+            f=e;
+            e=d+T1;
+            d=c;
+            c=b;
+            b=a;
+            a=T1+T2;
+        }
+
+        //Final Hex Collection
+        H[0]+=a;
+        H[1]+=b;
+        H[2]+=c;
+        H[3]+=d;
+        H[4]+=e;
+        H[5]+=f;
+        H[6]+=g;
+        H[7]+=h;
+    }
 
     for (int i{0}; i < 8; i++) {
         cout << hex << setw(8) << setfill('0') << H[i];
     }
-
     return 0;
 }
