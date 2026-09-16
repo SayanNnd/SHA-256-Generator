@@ -47,36 +47,32 @@ uint32_t majority(uint32_t a, uint32_t b, uint32_t c) {
 }
 
 //Convert String into a 512 bit block
-void createBlock(string &message, uint8_t block[64], int &l,int &i, int &blockNo) {
+void createBlock(string &message, uint8_t block[64], int &l,int &i, int &blockNo, bool &added_padding_byte) {
     uint8_t *pointer = block;
     uint8_t *endPointer = block+64;
     while(l<message.size() && pointer!=endPointer) {
-        *pointer = message[l];
-        pointer++;
-        l++;
-        if (l==message.size()) {
-            *pointer = 128;
-            pointer++;
-        }
+        *pointer++ = message[l++];
     }
+    if (l==message.size() && !added_padding_byte && pointer!=endPointer) {
+        *pointer++ = 0x80;
+        added_padding_byte = true;
+    }
+
     if (l==message.size()) {
         if (i==blockNo) {
             size_t L = message.length();
             size_t Z = (endPointer - pointer)-8;
             for (int i{0}; i<Z; i++) {
-                *pointer = 0;
-                pointer++;
+                *pointer++ = 0;
             }
             uint64_t length = L*8;
             for (int slide{56}; slide>=0; slide-=8) {
-                *pointer = (length>>slide);
-                pointer++;
+                *pointer++ = (length>>slide);
             }
         }
         else {
             while (pointer!=endPointer) {
-                *pointer = 0;
-                pointer++;
+                *pointer++ = 0;
             }
         }
     }
@@ -107,6 +103,7 @@ int main() {
 
     //Hex Algorithm
     int l=0;
+    bool added_padding_byte = false;
     for (int i{0}; i<=blockNo; i++) {
         //Re-initialiazing variables with older hex
         uint32_t a = H[0];
@@ -120,7 +117,7 @@ int main() {
 
         //Creates blocks from message to work upon 
         uint8_t block[64];
-        createBlock(message,block,l,i,blockNo);
+        createBlock(message,block,l,i,blockNo,added_padding_byte);
         uint32_t words[64];
         createWord(block,words);
 
