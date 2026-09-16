@@ -4,11 +4,11 @@ A lightweight, zero-dependency C++ implementation of the SHA-256 cryptographic h
 
 **Quick Start**
 
-Compile and run using any C++11 or newer compiler:
+Compile and run using any C++17 or newer compiler:
 
 ```bash
 # Compile
-g++ main.cpp -o sha256
+g++ main.cpp sha256.cpp -o sha256_app  
 
 # Run
-./sha256
+./sha256_app
