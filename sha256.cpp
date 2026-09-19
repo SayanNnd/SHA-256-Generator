@@ -2,6 +2,8 @@
 #include <string>
 #include <iomanip>
 #include <cstdint>
+#include <vector>
+#include "sha256.h"
 
 using namespace std;
 
@@ -31,7 +33,7 @@ const char hex_chars[] = "0123456789abcdef";
 
 //-------------------------------------------------------------
 
-//Helper Fucntions
+//Helper Functions
 uint32_t ROTR (uint32_t x, int n) {
     return (x>>n | x<<(32-n));
 }
@@ -55,7 +57,7 @@ uint32_t majority(uint32_t a, uint32_t b, uint32_t c) {
 }
 
 //Convert String into a 512 bit block
-void createBlock(string &message, uint8_t block[64], int &l,int &i, int &blockNo, bool &added_padding_byte) {
+void createBlock(vector<uint8_t> &message, uint8_t block[64], int &l,int &i, int &blockNo, bool &added_padding_byte) {
     uint8_t *pointer = block;
     uint8_t *endPointer = block+64;
     while(l<message.size() && pointer!=endPointer) {
@@ -68,7 +70,7 @@ void createBlock(string &message, uint8_t block[64], int &l,int &i, int &blockNo
 
     if (l==message.size()) {
         if (i==blockNo) {
-            size_t L = message.length();
+            size_t L = message.size();
             size_t Z = (endPointer - pointer)-8;
             for (int i{0}; i<Z; i++) {
                 *pointer++ = 0;
@@ -98,7 +100,7 @@ void createWord(uint8_t block[64], uint32_t words[64]) {
 
 //-------------------------------------------------------------
 
-string sha256(string &message) {
+string sha256(vector<uint8_t> &message) {
     //Hex Initialization
     uint32_t H[8];
     for (int i = 0; i < 8; i++) H[i] = H_INIT[i];
@@ -156,6 +158,11 @@ string sha256(string &message) {
             output += hex_chars[nibble];
         }
     }
-
     return output;
+}
+
+string sha256(string &message) {
+    vector<uint8_t> buffer(message.begin(),message.end());
+    string s = sha256(buffer);
+    return s;
 }
