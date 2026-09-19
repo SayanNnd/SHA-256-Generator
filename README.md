@@ -9,20 +9,17 @@ cd SHA-256-Generator
 ```
 
 Configure and Build (Release Mode):
-Choose **one** build mode depending on your use case:
-
 ```bash
-# --- Option A: Release Mode (For high performance) ---
-cmake -B build-release -DCMAKE_BUILD_TYPE=Release
+# Windows (PowerShell with MinGW / MSYS2):
+cmake -B build-release -G "MinGW Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=Release
 cmake --build build-release
 
-# --- Option B: Debug Mode (For development & debugging) ---
-cmake -B build-debug -DCMAKE_BUILD_TYPE=Debug
+# Linux/macOS:
+cmake -B build-debug -DCMAKE_BUILD_TYPE=Release
 cmake --build build-debug
 ```
 
 Run the Executable:
-
 ```bash
 Windows: .\build-release\sha256_app.exe
          .\build-debug\sha256_app.exe

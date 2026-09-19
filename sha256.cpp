@@ -89,7 +89,7 @@ void createBlock(vector<uint8_t> &message, uint8_t block[64], int &l,int &i, int
 }
 
 //Converts the 64 8-bit blocks into 16 32-bit blocks 
-void createWord(uint8_t block[64], uint32_t words[64]) {
+static void createWord(uint8_t block[64], uint32_t words[64]) {
     for (int i{0}; i<16; i++) {
         words[i] = (static_cast<uint32_t>(block[i*4]))<<24 | (static_cast<uint32_t>(block[i*4 + 1]))<<16 | (static_cast<uint32_t>(block[i*4 + 2]))<<8 | (static_cast<uint32_t>(block[i*4 + 3]));
     }
@@ -110,7 +110,7 @@ string sha256(vector<uint8_t> &message) {
     int l=0;
     bool added_padding_byte = false;
     for (int i{0}; i<=blockNo; i++) {
-        //Re-initialiazing variables with older hex
+        //Re-initializing variables with older hex
         uint32_t a = H[0];
         uint32_t b = H[1];
         uint32_t c = H[2];
