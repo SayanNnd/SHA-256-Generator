@@ -1,1 +1,9 @@
+cmake-build-debug/
+cmake-build-release/
+build/
+.idea/
+
 *.exe
+*.out
+*.o
+*.obj
