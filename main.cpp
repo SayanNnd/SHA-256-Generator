@@ -22,12 +22,12 @@ int main() {
         cout << "\n----------------------------------------------------------------\n";
         cout << "Welcome to SHA-256 Hasher" << endl;
         cout << "----------------------------------------------------------------\n\n";
-        cout << "Enter 1 for strings.\nEnter 2 for files.\nEnter 0 to exit.\n";
+        cout << "Enter 1 for strings.\nEnter 2 for files.\nEnter 0 to exit.\n\n";
         int x;
-        cin.clear();
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
         cin >> x;
         cout << "\033[1A\033[2K\n";
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
         if (x == 1) {
             stringopener();
         } else if (x == 2) {

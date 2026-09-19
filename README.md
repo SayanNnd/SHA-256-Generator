@@ -15,8 +15,8 @@ cmake -B build-release -G "MinGW Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUI
 cmake --build build-release
 
 # Linux/macOS:
-cmake -B build-debug -DCMAKE_BUILD_TYPE=Release
-cmake --build build-debug
+cmake -B build-release -DCMAKE_BUILD_TYPE=Release
+cmake --build build-release
 ```
 
 Run the Executable:
