@@ -8,7 +8,7 @@ Compile and run using any C++17 or newer compiler:
 
 ```bash
 # Compile
-g++ main.cpp sha256.cpp -o sha256_app  
+g++ -O3 -s main.cpp sha256.cpp -o sha256_app  
 
 # Run
 ./sha256_app
