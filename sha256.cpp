@@ -5,6 +5,8 @@
 #include <vector>
 #include "sha256.h"
 
+#include <bits/fs_fwd.h>
+
 using namespace std;
 
 //---------------------------------------------
@@ -56,38 +58,6 @@ uint32_t majority(uint32_t a, uint32_t b, uint32_t c) {
     return (a&b)^(a&c)^(b&c);
 }
 
-//Convert String into a 512 bit block
-void createBlock(vector<uint8_t> &message, uint8_t block[64], int &l,int &i, int &blockNo, bool &added_padding_byte) {
-    uint8_t *pointer = block;
-    uint8_t *endPointer = block+64;
-    while(l<message.size() && pointer!=endPointer) {
-        *pointer++ = message[l++];
-    }
-    if (l==message.size() && !added_padding_byte && pointer!=endPointer) {
-        *pointer++ = 0x80;
-        added_padding_byte = true;
-    }
-
-    if (l==message.size()) {
-        if (i==blockNo) {
-            size_t L = message.size();
-            size_t Z = (endPointer - pointer)-8;
-            for (int i{0}; i<Z; i++) {
-                *pointer++ = 0;
-            }
-            uint64_t length = L*8;
-            for (int slide{56}; slide>=0; slide-=8) {
-                *pointer++ = (length>>slide);
-            }
-        }
-        else {
-            while (pointer!=endPointer) {
-                *pointer++ = 0;
-            }
-        }
-    }
-}
-
 //Converts the 64 8-bit blocks into 16 32-bit blocks 
 static void createWord(uint8_t block[64], uint32_t words[64]) {
     for (int i{0}; i<16; i++) {
@@ -100,56 +70,42 @@ static void createWord(uint8_t block[64], uint32_t words[64]) {
 
 //-------------------------------------------------------------
 
-string sha256(vector<uint8_t> &message) {
-    //Hex Initialization
-    uint32_t H[8];
+SHA256::SHA256() {
     for (int i = 0; i < 8; i++) H[i] = H_INIT[i];
-    int blockNo = (message.size()+8)/64;
+    buffer_len = 0;
+    total_bit = 0;
+}
 
-    //Hex Algorithm
-    int l=0;
-    bool added_padding_byte = false;
-    for (int i{0}; i<=blockNo; i++) {
-        //Re-initializing variables with older hex
-        uint32_t a = H[0];
-        uint32_t b = H[1];
-        uint32_t c = H[2];
-        uint32_t d = H[3];
-        uint32_t e = H[4];
-        uint32_t f = H[5];
-        uint32_t g = H[6];
-        uint32_t h = H[7];
+void SHA256::update(uint8_t* block, size_t len) {
+    total_bit += static_cast<uint64_t>(len)*8;
+    for (int i{0}; i<len; i++) {
+        buffer[buffer_len++] = block[i];
 
-        //Creates blocks from message to work upon 
-        uint8_t block[64];
-        createBlock(message,block,l,i,blockNo,added_padding_byte);
-        uint32_t words[64];
-        createWord(block,words);
-
-        //Bit manipulation
-        for (int k{0}; k<64; k++) {
-            uint32_t T1 = h+K[k]+words[k]+bigsigma1(e)+choice(e,f,g);
-            uint32_t T2 = bigsigma0(a)+majority(a,b,c);
-            h=g;
-            g=f;
-            f=e;
-            e=d+T1;
-            d=c;
-            c=b;
-            b=a;
-            a=T1+T2;
+        if (buffer_len == 64) {
+            transform(buffer);
+            buffer_len = 0;
         }
-
-        //Final Hex Collection
-        H[0]+=a;
-        H[1]+=b;
-        H[2]+=c;
-        H[3]+=d;
-        H[4]+=e;
-        H[5]+=f;
-        H[6]+=g;
-        H[7]+=h;
     }
+}
+
+string SHA256::final() {
+    buffer[buffer_len++] = 0x80;
+    int L = 56-static_cast<int>(buffer_len);
+
+    if (L<0) {
+        while (buffer_len<64) buffer[buffer_len++] = 0x00;
+        transform(buffer);
+        buffer_len = 0;
+        for (int i{0}; i<56; i++) {
+            buffer[buffer_len++] = 0x00;
+        }
+    }
+    for (int i{0}; i<L; i++) buffer[buffer_len++] = 0x00;
+
+    for (int i{56}; i>=0; i-=8) {
+        buffer[buffer_len++] = (static_cast<uint8_t>(total_bit>>i) & 0xFF);
+    }
+    transform(buffer);
 
     string output = "";
     for (int i = 0; i < 8; i++) {
@@ -161,8 +117,42 @@ string sha256(vector<uint8_t> &message) {
     return output;
 }
 
-string sha256(string &message) {
-    vector<uint8_t> buffer(message.begin(),message.end());
-    string s = sha256(buffer);
-    return s;
+void SHA256::transform(uint8_t block[64]) {
+    //Re-initializing variables with older hex
+    uint32_t a = H[0];
+    uint32_t b = H[1];
+    uint32_t c = H[2];
+    uint32_t d = H[3];
+    uint32_t e = H[4];
+    uint32_t f = H[5];
+    uint32_t g = H[6];
+    uint32_t h = H[7];
+
+    //Creates blocks from message to work upon
+    uint32_t words[64];
+    createWord(block,words);
+
+    //Bit manipulation
+    for (int k{0}; k<64; k++) {
+        const uint32_t T1 = h+K[k]+words[k]+bigsigma1(e)+choice(e,f,g);
+        const uint32_t T2 = bigsigma0(a)+majority(a,b,c);
+        h=g;
+        g=f;
+        f=e;
+        e=d+T1;
+        d=c;
+        c=b;
+        b=a;
+        a=T1+T2;
+    }
+
+    //Final Hex Collection
+    H[0]+=a;
+    H[1]+=b;
+    H[2]+=c;
+    H[3]+=d;
+    H[4]+=e;
+    H[5]+=f;
+    H[6]+=g;
+    H[7]+=h;
 }

@@ -3,7 +3,16 @@
 #include <cstdint>
 #include <vector>
 
-using namespace std;
+class SHA256 {
+private:
+    uint32_t H[8];
+    uint8_t buffer[64];
+    size_t buffer_len;
+    uint64_t total_bit;
 
-string sha256(vector<uint8_t> &message);
-string sha256(string &message);
+public:
+    SHA256();
+    void update(uint8_t* block, size_t len);
+    void transform (uint8_t block[64]);
+    std::string final();
+};

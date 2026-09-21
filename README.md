@@ -22,10 +22,8 @@ cmake --build build-release
 Run the Executable:
 ```bash
 Windows: .\build-release\sha256_app.exe
-         .\build-debug\sha256_app.exe
 
 Linux/macOS: ./build-release/sha256_app
-             ./build-debug/sha256_app.exe
 ```
 
 
