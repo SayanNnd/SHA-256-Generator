@@ -1,11 +1,14 @@
+#include <algorithm>
 #include <cstdint>
 #include <cstdio>
-#include <iomanip>
 #include <iostream>
+#include <filesystem>
 #include <string>
 #include <vector>
 #include <limits>
 #include <chrono>
+#include <stack>
+
 #include "sha256.h"
 
 #define KB_128 (128*1024)
@@ -14,15 +17,19 @@
 #define reset "\033[0m"
 static bool benchmark_mode = false;
 static std::string enabler = "Enable";
+static uint64_t folder_bytes_read = 0;
 
 using namespace std;
+namespace fs = std::filesystem;
 
-
+static void processFolder(const fs::path& target);
 static void fileopener();
 static void stringopener();
-static void processFile(string filePath);
+static void processFile(const string& filePath);
 static void processString(string str);
+static void folderreader();
 static string cleanPath(string filePath);
+
 
 //------------------------------------------------------------------------------------------------------
 
@@ -36,12 +43,14 @@ int main(int argc ,char **argv) {
             cout << bold underline "SHA-256 Hasher CLI\n" reset
             << "By Sayan Nandi\n"
             << bold underline "USAGE\n" reset
-            << " " << name << " <file-path>                               Hashes File Paths\n"
-            << " " << name << " -f <file-path>                            Hashes File Paths\n"
-            << " " << name << " -s \"string to hash\"                       Hashes Strings\n"
-            << " " << name << " -f -b <file-path>                         Benchmark file hashing\n"
-            << " " << name << " -s -b \"string\"                            Benchmark string hashing\n"
-            << " " << name << "                                           Launches Interactive menu\n";
+            << " " << name << " \"<file-path>\"                         Hashes File Paths\n"
+            << " " << name << " -f \"<file-path>\"                      Hashes File Paths (Leave empty argument to hash current folder)\n"
+            << " " << name << " -s \"string to hash\"                   Hashes Strings\n"
+            << " " << name << " -d \"<folder-path>\"                    Hashes Folder\n"
+            << " " << name << " -f -b \"<file-path>\"                   Benchmark File hashing\n"
+            << " " << name << " -s -b \"string\"                        Benchmark String hashing\n"
+            << " " << name << " -d -b \"<file-path>\"                   Benchmark Folder hashing (Leave empty argument to hash current folder)\n"
+            << " " << name << "                                       Launches Interactive menu\n";
         }
         else if  (arg1=="-f" || arg1=="--file") {
             if (argc>3) {
@@ -59,6 +68,29 @@ int main(int argc ,char **argv) {
             }
             else {
                 cout << bold "ERROR MISSING ARGUMENTS\n" reset;
+            }
+        }
+        else if  (arg1=="-d" || arg1=="--directory") {
+            if (argc>3) {
+                string arg2 = argv[2];
+                if (arg2 == "-b") {
+                    benchmark_mode = true;
+                    processFolder(fs::path(argv[3]));
+                }
+                else {
+                    cout << bold "ERROR: Invalid flag " << arg2 << "\n" reset;
+                }
+            }
+            else if (argc==3) {
+                string arg2 = argv[2];
+                if (arg2 == "-b") {
+                    benchmark_mode = true;
+                    processFolder(fs::current_path());
+                }
+                else processFolder(fs::path(argv[2]));
+            }
+            else {
+                processFolder(fs::current_path());
             }
         }
         else if  (arg1=="-s" || arg1=="--string") {
@@ -95,7 +127,7 @@ int main(int argc ,char **argv) {
         cout << "\n----------------------------------------------------------------\n";
         cout << "Welcome to SHA-256 Hasher" << endl;
         cout << "----------------------------------------------------------------\n\n";
-        cout << "Enter 1 for strings.\nEnter 2 for files.\nEnter 3 to " << enabler << " Benchmark mode\nEnter 0 to exit.\n\n";
+        cout << "Enter 1 for strings.\nEnter 2 for files.\nEnter 3 to scanning directories.\nEnter 4 to " << enabler << " Benchmark mode\nEnter 0 to exit.\n\n";
         int x;
         cin >> x;
         cout << "\033[1A\033[2K\n";
@@ -105,9 +137,9 @@ int main(int argc ,char **argv) {
             stringopener();
         } else if (x == 2) {
             fileopener();
-        } else if (x == 0) {
-            return 0;
         } else if (x == 3) {
+            folderreader();
+        } else if (x == 4) {
             if (benchmark_mode) {
                 benchmark_mode=false;
                 enabler="Enable";
@@ -116,7 +148,9 @@ int main(int argc ,char **argv) {
                 enabler="Disable";
             }
             cout << "\033[1A\033[2K\n";
-        }else {
+        }else if (x == 0) {
+            return 0;
+        } else {
             cout << "Please enter a valid input";
         }
     }
@@ -140,8 +174,28 @@ void stringopener() {
     processString(message);
 }
 
+static void folderreader() {
+    string folderPath;
+    cout << "Enter the folder path (Type \"/\" for current folder):- ";
+    getline(cin, folderPath);
+    if (folderPath == "/") {
+        processFolder(fs::current_path());
+    }
+    else {
+        processFolder(fs::path(folderPath));
+    }
+}
+
+
 //MAIN FUNCTIONS
-void processFile(string filePath) {
+static string cleanPath(string filePath) {
+    if (filePath.empty() && filePath.front()=='"' && filePath.back()=='"') {
+        filePath=filePath.substr(1,filePath.size()-2);
+    }
+    return filePath;
+}
+
+void processFile(const string& filePath) {
     FILE* file_ptr = fopen(filePath.c_str(), "rb");
     if (!file_ptr) {
         cout << "Unable to open file." << endl;
@@ -158,6 +212,7 @@ void processFile(string filePath) {
     while ((bytes_read=fread(buffer.data(), 1, buffer.size(), file_ptr)) > 0) {
         hasher.update(buffer.data(), bytes_read);
         total_bytes_read += bytes_read;
+        folder_bytes_read += bytes_read;
     }
     fclose(file_ptr);
 
@@ -168,7 +223,7 @@ void processFile(string filePath) {
     double megabytes = static_cast<double>(total_bytes_read) / (1024.0 * 1024.0);
     double speed_mbps = megabytes / seconds;
 
-    cout << "SHA-256: " << output << "\n";
+    cout << output << "\n";
     if (benchmark_mode) {
         cout << "------------------------------------------------\n";
         cout << "Time taken : " << seconds << " seconds\n";
@@ -199,9 +254,49 @@ void processString(string str) {
     }
 }
 
-string cleanPath(string filePath) {
-    if (filePath!="" && filePath.front()=='"' && filePath.back()=='"') {
-        filePath=filePath.substr(1,filePath.size()-2);
+static void processFolder(const fs::path& target) {
+    auto start_time = chrono::high_resolution_clock::now();
+
+    stack<fs::path> sub_targets;
+    sub_targets.push(target);
+    vector<fs::directory_entry> entries;
+    while (!sub_targets.empty()) {
+        fs::path curr_path = sub_targets.top();
+        sub_targets.pop();
+        for (auto& entry : fs::directory_iterator(curr_path)) {
+            if (entry.is_directory()) {
+                sub_targets.push(entry.path());
+            }
+            else if (entry.is_regular_file()) {
+                if (entry.path().filename()!= "sha256.exe")
+                entries.push_back(entry);
+            }
+        }
     }
-    return filePath;
+    const size_t fileNo = entries.size();
+    sort(entries.begin(), entries.end());
+
+    bool folder_bench = false;
+    if (benchmark_mode) folder_bench = true;
+    benchmark_mode = false;
+
+    for (auto& entry : entries) {
+        cout << fs::relative(entry, target) << " :- ";
+        processFile(entry.path().string());
+    }
+
+    auto end_time = std::chrono::high_resolution_clock::now();
+    chrono::duration<double> elapsed = end_time - start_time;
+    double seconds = elapsed.count();
+    double megabytes = static_cast<double>(folder_bytes_read) / (1024.0 * 1024.0);
+    double speed_mbps = megabytes / seconds;
+    if (folder_bench) {
+        cout << "------------------------------------------------\n";
+        cout << "Folder Size : " << megabytes << " MegaBytes\n";
+        cout << "Number of Files : " << fileNo << "\n";
+        cout << "Time taken : " << seconds << " seconds\n";
+        cout << "Approx Speed : " << speed_mbps << " MB/s\n";
+        cout << "------------------------------------------------\n";
+        benchmark_mode = true;
+    }
 }

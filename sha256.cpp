@@ -78,7 +78,7 @@ SHA256::SHA256() {
 
 void SHA256::update(uint8_t* block, size_t len) {
     total_bit += static_cast<uint64_t>(len)*8;
-    for (int i{0}; i<len; i++) {
+    for (int i{0}; i<static_cast<int>(len); i++) {
         buffer[buffer_len++] = block[i];
 
         if (buffer_len == 64) {
@@ -107,7 +107,7 @@ string SHA256::final() {
     }
     transform(buffer);
 
-    string output = "";
+    string output;
     for (int i = 0; i < 8; i++) {
         for (int shift = 28; shift >= 0; shift -= 4) {
             uint8_t nibble = (H[i] >> shift) & 0x0F;
