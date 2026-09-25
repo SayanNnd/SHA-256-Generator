@@ -1,19 +1,21 @@
 A lightweight, zero-dependency C++ implementation of the SHA-256 cryptographic hash function written from scratch and verified against official NIST test vectors. 
-Built for maximum throughput and minimal overhead, this utility uses a stateful streaming architecture to hash massive files (40GB+) while maintaining a near-zero memory footprint. 
+Built for maximum throughput and minimal overhead, this utility uses a stateful streaming architecture and heap-based stack traversal to hash massive single files (40GB+) or entire directory trees (150GB+) while maintaining a near-zero memory footprint.
 (God bless all my brothers using 16GB RAM T-T)
 
-## ✨ Features
+## Features
 * **Massive File Support:** Hashes files of any size using a 128 KB streaming buffer.
 * **High Performance:** Achieves ~250-275+ MB/s single-core throughput in pure C++ through efficient buffered disk reads. (smth like that)
 * **Dual Interface:** Supports standard CLI execution for scripting or a guided interactive menu. (No one using ts)
+* **Folder & File Telemetry:** Built-in benchmarking flags (```-b```) measure total processed dataset size (MB), file count, execution time, and aggregate throughput (MB/s).
+* **Iterative Directory Traversal:** Recursively scans and hashes entire folder hierarchies using an explicit heap stack—eliminating call-stack overflow risks on deeply nested directories.
 * **Built-in Benchmarking:** Toggleable telemetry to measure execution time and disk/CPU throughput in MB/s.
-* **Zero Dependencies:** Pure standard C++, requiring no external crypto libraries (OpenSSL, Libsodium, etc.). (I love re-inventing da weheel)
+* **Zero Dependencies:** Pure standard C++(```std::filesystem```), requiring no external crypto libraries (OpenSSL, Libsodium, etc.). (I love re-inventing da weheel)
 
 <img width="1280" height="720" alt="GitLarp-ezgif com-video-to-gif-converter" src="https://github.com/user-attachments/assets/ef0ea523-eea5-4546-9bca-d43fd9288e53" />
 
 ---
 
-## 🚀 Installation
+## Installation
 
 ### Option 1: Windows Quick Install (Recommended)
 You can install the pre-compiled binary globally so you can use the `sha256` command in any terminal folder.
@@ -28,9 +30,8 @@ To compile the project yourself, clone the repository:
 git clone https://github.com/SayanNnd/SHA-256-Generator
 cd SHA-256-Generator
 ```
-
 **Windows (PowerShell with MinGW / MSYS2):**
-```bash
+```PowerShell
 cmake -B build-release -G "MinGW Makefiles" -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=Release
 cmake --build build-release
 .\build-release\sha256.exe
@@ -45,7 +46,7 @@ cmake --build build-release
 
 ---
 
-## 💻 Usage
+## Usage
 
 ### Basic Commands
 Hash a file directly:
@@ -59,6 +60,15 @@ sha256 -f ""C:\Nintendo Games\Mario Kart 8 Deluxe v3.0.5.nsp""
 Hash a text string:
 ```bash
 sha256 -s "shinji crank that soulja boy"
+```
+
+Hash an entire folder tree (all subdirectories and regular files, Leave empty to scan current directory):
+
+```PowerShell
+sha256 -d -b "D:\Games\Gang Beasts"
+```
+```PowerShell
+sha256 -d
 ```
 
 ### Benchmarking Mode (`-b`)
