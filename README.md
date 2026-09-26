@@ -3,15 +3,16 @@ Built for maximum throughput and minimal overhead, this utility uses a stateful 
 (God bless all my brothers using 16GB RAM T-T)
 
 ## Features
+* **Multi-Threaded Folder Hashing:** Dynamically scales across your CPU cores to saturate modern NVMe SSDs (achieving 1.5+ GB/s throughput on multi-file reads). Includes custom thread limits and pre-configured performance presets.
 * **Massive File Support:** Hashes files of any size using a 128 KB streaming buffer.
 * **High Performance:** Achieves ~250-275+ MB/s single-core throughput in pure C++ through efficient buffered disk reads. (smth like that)
 * **Dual Interface:** Supports standard CLI execution for scripting or a guided interactive menu. (No one using ts)
 * **Folder & File Telemetry:** Built-in benchmarking flags (```-b```) measure total processed dataset size (MB), file count, execution time, and aggregate throughput (MB/s).
 * **Iterative Directory Traversal:** Recursively scans and hashes entire folder hierarchies using an explicit heap stack—eliminating call-stack overflow risks on deeply nested directories.
-* **Built-in Benchmarking:** Toggleable telemetry to measure execution time and disk/CPU throughput in MB/s.
 * **Zero Dependencies:** Pure standard C++(```std::filesystem```), requiring no external crypto libraries (OpenSSL, Libsodium, etc.). (I love re-inventing da weheel)
 
-<img width="1280" height="720" alt="GitLarp-ezgif com-video-to-gif-converter" src="https://github.com/user-attachments/assets/ef0ea523-eea5-4546-9bca-d43fd9288e53" />
+<img width="1280" height="720" alt="ezgif com-speed" src="https://github.com/user-attachments/assets/d963e268-218d-4b53-872c-aa48fe6dcb64" />
+(Video is sped up by 150%)
 
 ---
 
@@ -71,11 +72,18 @@ sha256 -d -b "D:\Games\Gang Beasts"
 sha256 -d
 ```
 
+### Multi-Threading (-t)
+When hashing folders, the app defaults to a "Balanced" core count (50% of your max threads). You can manually override this using the -t flag to squeeze maximum performance out of your SSD.
+
+```bash
+sha256 -d -t 12 "D:\SteamLibrary\steamapps\common\Destiny 2"
+```
+
 ### Benchmarking Mode (`-b`)
 Append the `-b` flag to output detailed runtime metrics, including elapsed seconds and processing speed (MB/s). 
 
 ```bash
-sha256 -f -b "Massive_Humongous_InsanelyHuge_CP_recording.mkv"
+sha256 -f -b "Massive_Humongous_InsanelyHuge_CyberPunk_recording.mkv"
 ```
 (Cyberpunk 2077 is very fun)
  
